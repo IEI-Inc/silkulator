@@ -28,13 +28,35 @@ REGION_ALIAS("REGION_ISR_STACK", KERNEL_RAM)
 REGION_ALIAS("REGION_KERNEL_STACKS", KERNEL_RAM)
 REGION_ALIAS("REGION_KERNEL_HEAP", KERNEL_RAM)
 
-/* src/fw/kernel/memory_layout.c references these as extern symbols (for
- * its MPU memory-region table); confirmed against the real, current
- * coredevices/pebbleos fork's fw/linker/memory.ld, which defines the
- * exact same two symbols the exact same way (aliased straight to the
- * flash region's own origin/length) for its STM32 targets. */
-__FLASH_start__ = ORIGIN(FLASH);
-__FLASH_size__ = LENGTH(FLASH);
+/* src/fw/kernel/memory_layout.c references these as extern symbols, to
+ * build the MPU region that covers the chip's entire internal flash
+ * (src/fw/drivers/mpu.c's get_size_field() walks size=32,64,128,...
+ * doubling until it matches region->size, and REQUIRES an exact power
+ * of two -- it has no other way to terminate).
+ *
+ * Earlier this aliased __FLASH_start__/__FLASH_size__ straight to this
+ * script's own FLASH region (ORIGIN(FLASH)/LENGTH(FLASH)), copying the
+ * real coredevices/pebbleos fork's fw/linker/memory.ld naming -- but
+ * that fork's FLASH region *is* the whole chip, whereas here FLASH is
+ * just the firmware's own sub-region carved out after the bootloader
+ * and image header (see FW_FLASH_ORIGIN/FW_FLASH_LENGTH above: origin
+ * is chip-start + bootloader_size, length is flash_size - bootloader_
+ * size). LENGTH(FLASH) is therefore something like 0xfc000 (1024K minus
+ * the 16K bootloader) -- not a power of two -- so get_size_field()'s
+ * loop could never terminate normally, and silently spun forever (no
+ * assert output ever made it out either) the moment memory_layout_setup
+ * _mpu() tried to register that region, hanging boot immediately after
+ * task_init() with no crash and no further dbgserial output.
+ *
+ * The fix: use the *whole-chip* FLASH_ORIGIN/FLASH_SIZE substitutions
+ * that src/fw/wscript's _generate_memory_layout() already computes and
+ * passes to every board's linker template (flash_origin = chip base,
+ * e.g. 0x08000000; flash_size = the chip's full power-of-two capacity,
+ * e.g. 1024K on real silk hardware, or 4M here under --qemu) -- matching
+ * what pebbleos's memory.ld actually does (CONFIG_FLASH_BASE/_SIZE, the
+ * SoC's real base/size, not its own FLASH region's ORIGIN()/LENGTH()). */
+__FLASH_start__ = @FLASH_ORIGIN@;
+__FLASH_size__ = @FLASH_SIZE@;
 
 @BOOTLOADER_SYMBOLS@
 

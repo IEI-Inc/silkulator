@@ -274,7 +274,25 @@ Or re-configure with the --relax_toolchain_restrictions option. """
              '-ffreestanding',
              '-ffunction-sections',
              '-fbuiltin',
-             '-fno-builtin-itoa' ]
+             '-fno-builtin-itoa',
+             # Modern gcc's "loop-idiom" pass (part of tree-loop-distribute-
+             # patterns, on by default here even at -Os) recognizes hand-
+             # rolled loops like src/libc/string/strlen.c's `while (*s++)`
+             # as matching a known libc function and rewrites them into a
+             # call to that same-named function. When compiling the file
+             # that itself *defines* e.g. strlen(), this turns the loop
+             # into a self-referential tail call, which later collapses
+             # into a single `b.w <self>` infinite loop at -Os -- a silent
+             # miscompilation (confirmed by disassembling strlen.c.2.o: it
+             # built down to one infinite-self-branch instruction instead
+             # of the real byte-scanning loop, which is exactly why the
+             # firmware hung after boot with no further dbgserial output).
+             # -fno-builtin-strlen/-memcpy/etc. do NOT prevent this --
+             # that only affects how *callers* treat the name, not this
+             # internal idiom-recognition pass -- so this must be disabled
+             # outright for any freestanding libc build providing its own
+             # implementations of these functions.
+             '-fno-tree-loop-distribute-patterns' ]
 
     if not conf.options.no_debug:
         args += [ '-g3',  # Extra debugging info, including macro definitions

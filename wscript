@@ -367,6 +367,14 @@ def _create_cm0_env(conf):
         '-fno-builtin-itoa',
         '-ffreestanding',
         '-Os',
+        # Same loop-idiom self-reference miscompilation fix as the main
+        # ARM env (waftools/pebble_arm_gcc.py): without this, modern gcc's
+        # loop-idiom pass can rewrite the hand-written loop inside e.g.
+        # strlen.c's own strlen() into a tail call back to strlen itself,
+        # which at -Os collapses into an infinite `b.w <self>` loop. The
+        # bootloader (built with this cortex-m0 env) links the same
+        # src/libc sources, so it needs the same fix.
+        '-fno-tree-loop-distribute-patterns',
     ]
     if not conf.options.no_debug:
         OPT_FLAGS += [
