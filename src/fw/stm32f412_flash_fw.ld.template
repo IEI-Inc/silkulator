@@ -1,0 +1,41 @@
+/*
+ * Reconstructed MCU-specific linker script for the silk (Pebble 2 / STM32F412)
+ * firmware build. This file does not ship in the public google/pebble dump
+ * (it was omitted, not merely license-stripped like the vendor libraries),
+ * so it was written from scratch here to satisfy the contract documented
+ * in src/fw/fw_common.ld: define FLASH, KERNEL_RAM, APP_RAM, WORKER_RAM,
+ * plus REGION_ISR_STACK / REGION_KERNEL_STACKS / REGION_KERNEL_HEAP (as
+ * aliases). Values are substituted by src/fw/wscript's _generate_memory_layout().
+ *
+ * Modeled directly on platform/silk/boot/src/stm32f_flash_boot.ld.in (the
+ * real, shipped bootloader linker script for this same chip) for style and
+ * on the real STM32F412xG memory map (flash at 0x08000000, SRAM at
+ * 0x20000000, 256K total) for the numbers that aren't passed in.
+ */
+
+MEMORY
+{
+    FLASH      (rx)  : ORIGIN = @FW_FLASH_ORIGIN@, LENGTH = @FW_FLASH_LENGTH@
+    KERNEL_RAM (xrw) : ORIGIN = @KERNEL_RAM_ADDR@, LENGTH = @KERNEL_RAM_SIZE@
+    APP_RAM    (xrw) : ORIGIN = @APP_RAM_ADDR@, LENGTH = @APP_RAM_SIZE@
+    WORKER_RAM (xrw) : ORIGIN = @WORKER_RAM_ADDR@, LENGTH = @WORKER_RAM_SIZE@
+}
+
+/* fw_common.ld asks for these three region names; on silk there's no
+ * separate CCM/TCM bank carved out for them like there is on snowy, so they
+ * all simply alias the kernel's own RAM region. */
+REGION_ALIAS("REGION_ISR_STACK", KERNEL_RAM)
+REGION_ALIAS("REGION_KERNEL_STACKS", KERNEL_RAM)
+REGION_ALIAS("REGION_KERNEL_HEAP", KERNEL_RAM)
+
+/* src/fw/kernel/memory_layout.c references these as extern symbols (for
+ * its MPU memory-region table); confirmed against the real, current
+ * coredevices/pebbleos fork's fw/linker/memory.ld, which defines the
+ * exact same two symbols the exact same way (aliased straight to the
+ * flash region's own origin/length) for its STM32 targets. */
+__FLASH_start__ = ORIGIN(FLASH);
+__FLASH_size__ = LENGTH(FLASH);
+
+@BOOTLOADER_SYMBOLS@
+
+/* vim: set filetype=ld: */
