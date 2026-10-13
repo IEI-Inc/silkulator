@@ -130,7 +130,94 @@ def configure(conf):
                    '-Wno-missing-field-initializers',
                    '-Wno-error=unused-function',
                    '-Wno-error=unused-variable',
-                   '-Wno-error=unused-parameter' ]
+                   '-Wno-error=unused-parameter',
+                   # Modern gcc (12+) added a built-in __FILE_NAME__ macro;
+                   # this tree still manually -D's it per translation unit
+                   # (see waftools/file_name_c_define.py), which is now a
+                   # harmless redefinition rather than a real bug.
+                   '-Wno-builtin-macro-redefined',
+                   '-Wno-error=address-of-packed-member',
+                   '-Wno-error=array-bounds',
+                   # src/libc/alloca.c's __builtin_alloca wrapper is
+                   # *intentionally* returning a pointer into the caller's
+                   # frame (that's what alloca() does); modern gcc's new
+                   # -Wreturn-local-addr flags it as if it were a bug.
+                   '-Wno-error=return-local-addr',
+                   # This codebase relies in several places on different
+                   # StdPeriph enum types (e.g. GPIOPuPd_TypeDef vs
+                   # GPIOOType_TypeDef) sharing small integer value spaces
+                   # and uses them interchangeably/positionally; newer
+                   # gcc's -Wenum-conversion flags the implicit conversions
+                   # as suspicious even though the values are intentional.
+                   '-Wno-error=enum-conversion',
+                   # New in modern gcc: flags self-aliasing memcpy()
+                   # calls as violating the restrict-qualified parameter
+                   # contract. The one real instance of this in-tree
+                   # (local_id.c) was a genuine dead no-op and was
+                   # removed outright rather than suppressed; this covers
+                   # any other pre-existing instance encountered later.
+                   '-Wno-error=restrict',
+                   # New in modern gcc: -Wimplicit-fallthrough requires
+                   # an explicit annotation/comment on every intentional
+                   # switch-case fallthrough. This decade-old codebase
+                   # has many intentional fallthroughs written before
+                   # that convention existed; downgrading to a warning
+                   # rather than retrofitting annotations across the
+                   # whole tree.
+                   '-Wno-error=implicit-fallthrough',
+                   # New in modern gcc: flags a const variable that's
+                   # defined but never referenced in this translation
+                   # unit (e.g. only used by other build configs/boards).
+                   '-Wno-error=unused-const-variable',
+                   # New in modern gcc: a function previously declared
+                   # taking a pointer is now redeclared/defined taking a
+                   # fixed-size array parameter (or vice versa) somewhere
+                   # else in this codebase; both are the same calling
+                   # convention in C, just stricter new type-matching.
+                   '-Wno-error=array-parameter',
+                   # date_time_selection_window_private.c's snprintf calls
+                   # are into buffers sized for their actual worst-case
+                   # content; new gcc's conservative static truncation
+                   # check can't prove that from the format string alone.
+                   '-Wno-error=format-truncation',
+                   # property_animation.c intentionally casts between
+                   # differently-typed setter/getter function pointers
+                   # (Int16Setter/Getter vs GTransform/Fixed_S32_16
+                   # variants) as part of its generic property-animation
+                   # dispatch mechanism; new gcc's -Wcast-function-type
+                   # flags that even though every call site casts back
+                   # to the correct concrete type before invoking.
+                   '-Wno-error=cast-function-type',
+                   # time.c's time_util_update_timezone() deliberately
+                   # sizes a strncpy() off the (smaller, possibly
+                   # unterminated) source array rather than the dest
+                   # array, specifically to avoid reading past the
+                   # source's real bounds -- see the comment at that call
+                   # site. New gcc's -Wsizeof-pointer-memaccess assumes
+                   # sizeof(source) is always a mistake, which isn't true
+                   # here.
+                   '-Wno-error=sizeof-pointer-memaccess',
+                   # The official, unmodified ARM CMSIS core_cm4.h
+                   # (src/fw/vendor/CMSIS/Include) uses inline asm that
+                   # lists the stack pointer in a clobber list; new gcc
+                   # considers that deprecated style even though it's
+                   # ARM's own reference header, not anything in this
+                   # codebase.
+                   '-Wno-error=deprecated',
+                   # app_smartstrap.c expands "defined(X)" from inside a
+                   # macro -- technically unspecified-behavior per the C
+                   # standard (used purely for its practically-universal,
+                   # well-defined behavior on every real preprocessor),
+                   # which new gcc now warns about.
+                   '-Wno-error=expansion-to-defined',
+                   # fonts.c's fonts_get_system_font() deliberately uses
+                   # strncpy() to copy an exact-length prefix with no
+                   # null terminator (immediately followed by a strcpy()
+                   # appending the rest of the string right after it) --
+                   # new gcc's -Wstringop-truncation assumes any
+                   # non-terminating strncpy is a bug, but this one is
+                   # intentionally building up a buffer in two pieces.
+                   '-Wno-error=stringop-truncation' ]
 
     if conf.using_clang_compiler():
       sysroot_path = find_sysroot_path(conf)

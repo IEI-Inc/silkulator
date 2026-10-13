@@ -387,7 +387,10 @@ bool gbitmap_sequence_update_bitmap_next_frame(GBitmapSequence *bitmap_sequence,
             prv_set_pixel_in_row(row_info.data, bitmap_format, corrected_dst_x, GColorClear);
           }
         } else {
-          channel = (channel * 255) / ~(~0 << bpp);  // Convert to 8-bit value
+          // ~0u (unsigned) instead of ~0: avoids new gcc's
+          // -Wshift-negative-value (shifting signed -1 left is UB),
+          // same all-ones bit pattern either way.
+          channel = (channel * 255) / ~(~0u << bpp);  // Convert to 8-bit value
           const GColor8 color = GColorFromRGB(channel, channel, channel);
 
           prv_set_pixel_in_row(row_info.data, bitmap_format, corrected_dst_x, color);

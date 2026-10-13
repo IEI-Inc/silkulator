@@ -259,7 +259,18 @@ void *pulse_logging_log_sync_begin(
 
 void pulse_logging_log_sync_append(void *ctx, const char *message) {
   MessageContents *contents = ctx;
-  strncat(contents->message, message, sizeof(contents->message));
+  // NOTE: this was `strncat(contents->message, message,
+  // sizeof(contents->message))` -- strncat's bound is the number of
+  // bytes it may APPEND, not the destination buffer's total size; passing
+  // the full buffer size here could append past the end once the buffer
+  // already has content. New gcc's -Wstringop-overflow correctly caught
+  // this as a genuine potential overflow. Fixed to pass the actual
+  // remaining space.
+  size_t used = strlen(contents->message);
+  size_t cap = sizeof(contents->message);
+  if (used < cap - 1) {
+    strncat(contents->message, message, cap - 1 - used);
+  }
 }
 
 void pulse_logging_log_sync_send(void *ctx) {

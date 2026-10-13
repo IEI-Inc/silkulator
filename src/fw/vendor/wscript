@@ -1,6 +1,11 @@
 def configure(conf):
     if conf.is_silk():
         conf.env.append_unique('DEFINES', 'STM32F412xG')
+        # The CMSIS device header dispatches on the exact package macro
+        # (STM32F412Rx/Cx/Vx/Zx), not the density-only STM32F412xG the rest
+        # of this tree uses; Rx (64-pin) is the common choice for wearables
+        # and is electrically identical to the others for our purposes.
+        conf.env.append_unique('DEFINES', 'STM32F412Rx')
     elif conf.env.MICRO_FAMILY == 'STM32F4':
         conf.env.append_unique('DEFINES', 'STM32F429_439xx')
     elif conf.env.MICRO_FAMILY == 'STM32F7':
@@ -16,7 +21,21 @@ def build(bld):
 
     if bld.env.MICRO_FAMILY == 'STM32F4':
         if bld.is_silk():
-            excludes = ['**/stm32f4xx_fmc.c']
+            # STM32F412 (silk) lacks CRYP, HASH, DAC, DCMI and FSMC
+            # entirely -- confirmed by their absence from the real,
+            # current STMicroelectronics/cmsis_device_f4 stm32f412rx.h
+            # device header (no CRYP_TypeDef/HASH_TypeDef/DAC_TypeDef/
+            # DCMI_TypeDef/FSMC_Bank2_TypeDef etc.) -- so the StdPeriph
+            # drivers for them can't build against it (they target
+            # bigger F4 parts that do have these peripherals, like
+            # F437/F439). Matches the non-silk branch below, which
+            # already excludes fsmc.c for the same reason on those
+            # other boards.
+            excludes = ['**/stm32f4xx_fsmc.c',
+                        '**/stm32f4xx_cryp*.c',
+                        '**/stm32f4xx_hash*.c',
+                        '**/stm32f4xx_dac.c',
+                        '**/stm32f4xx_dcmi.c']
         else:
             excludes = ['**/stm32f4xx_fsmc.c']
 

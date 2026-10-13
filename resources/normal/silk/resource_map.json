@@ -435,6 +435,23 @@
      "name": "JS_TICTOC",
      "file": "normal/base/js/tictoc.js",
      "builtin": true
+    },
+    {
+      "type": "raw",
+      "name": "AS7000_FW_IMAGE",
+      "file": "normal/silk/misc/as7000_fw_image_placeholder.bin",
+      "_comment": ["Google's open-source release strips the real AS7000",
+                   "heart-rate-sensor firmware image (proprietary AMS/OSRAM",
+                   "binary for the HRM chip's own internal microcontroller --",
+                   "not reconstructible from any public source, unlike the",
+                   "STM32/CMSIS vendor files elsewhere in this tree).",
+                   "Substituted with a deliberately empty (0-byte) resource:",
+                   "hrm_init() in src/fw/drivers/hrm/as7000.c already has a",
+                   "designed-in graceful path for update_length == 0",
+                   "('No HRM FW update available') which skips HRM boot/",
+                   "flashing entirely rather than crashing, so this placeholder",
+                   "lets the resource ID exist (and the firmware build/link",
+                   "succeed) without fabricating fake sensor firmware bytes."]
     }
   ]
 }

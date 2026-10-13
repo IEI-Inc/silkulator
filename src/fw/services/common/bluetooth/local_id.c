@@ -154,5 +154,9 @@ void bt_local_id_generate_address_from_serial(BTDeviceAddress *addr_out) {
     *addr_out = fallback_addr;
   }
 
-  memcpy(addr_out, (uint8_t *)addr_out, sizeof(*addr_out));
+  // NOTE: this used to end with `memcpy(addr_out, (uint8_t *)addr_out,
+  // sizeof(*addr_out))` -- copying the buffer onto itself, a genuine
+  // no-op (new -Werror=restrict correctly flags self-aliasing memcpy as
+  // undefined behavior per the C standard's restrict-qualified-parameter
+  // rules). Removed rather than "fixed": there's nothing for it to do.
 }

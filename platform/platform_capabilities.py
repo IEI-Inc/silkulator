@@ -190,7 +190,17 @@ board_capability_dicts = [
             'HAS_JAVASCRIPT',
             'HAS_LAUNCHER4',
             # 'HAS_MAPPABLE_FLASH' -- TODO: PBL-33860 verify memory-mappable flash works on silk before activating
-            # 'HAS_MICROPHONE', -- TODO: disabled because driver was removed
+            # HAS_MICROPHONE was disabled upstream ("driver was removed") because
+            # Google's open-source release stripped the DFSDM StdPeriph driver this
+            # mic path depends on (src/fw/drivers/mic/stm32/dfsdm.c). That driver has
+            # been reconstructed from scratch against the real STM32F412 DFSDM
+            # register map in src/fw/vendor/STM32F4xx_StdPeriph_Driver/{inc,src}/
+            # stm32f4xx_dfsdm.{h,c} (see those files' top-of-file comments), so
+            # re-enabling this restores consistency with the rest of the tree --
+            # notably src/fw/apps/system_apps/reminders/reminder_app.c calls
+            # voice_window_*() unconditionally with no capability guard of its own,
+            # which only resolves (and links) when this capability is on.
+            'HAS_MICROPHONE',
             # 'USE_PARALLEL_FLASH' -- FIXME hack to get the "modern" flash layout. Fix when we add support for new flash
             'HAS_PMIC',
             'HAS_SDK_SHELL4',

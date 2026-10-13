@@ -50,10 +50,47 @@ def configure(conf):
                   '-Werror',
                   '-Wno-unused-parameter',
                   '-Wno-error=unused-function',
-                  '-Wno-error=unused-variable']
+                  '-Wno-error=unused-variable',
+                  # Same modern-gcc-vs-decade-old-code compat flags applied
+                  # to the firmware toolchain in pebble_arm_gcc.py: this is
+                  # a separate compiler env (for 3rd-party/stored apps) and
+                  # doesn't inherit those flags, but hits the same issues.
+                  '-Wno-builtin-macro-redefined',
+                  '-Wno-error=address-of-packed-member',
+                  '-Wno-error=array-bounds',
+                  '-Wno-error=return-local-addr',
+                  # Generated pebble.h redeclares libc functions like
+                  # strftime/time with the app SDK's own historical
+                  # signatures (built against an older libc where e.g.
+                  # strftime returned int); modern gcc's builtin prototypes
+                  # disagree and -Werror would turn that into a hard error.
+                  '-Wno-error=builtin-declaration-mismatch',
+                  '-Wno-error=enum-conversion',
+                  '-Wno-error=restrict',
+                  '-Wno-error=implicit-fallthrough',
+                  '-Wno-error=unused-const-variable',
+                  '-Wno-error=array-parameter',
+                  '-Wno-error=format-truncation',
+                  '-Wno-error=cast-function-type',
+                  '-Wno-error=sizeof-pointer-memaccess',
+                  '-Wno-error=deprecated',
+                  '-Wno-error=expansion-to-defined',
+                  '-Wno-error=stringop-truncation']
 
     if (conf.env.SDK_VERSION_MAJOR == 5) and (conf.env.SDK_VERSION_MINOR > 19):
+        # pebble.h declares its own struct tm/strftime/localtime/etc
+        # (the app SDK's historical, stripped-down time API), which
+        # collide with the real newlib <time.h> if it's allowed to
+        # declare them too -- hence predefining newlib's _TIME_H_ guard
+        # so pebble.h's #include <time.h> is a no-op for everything time.h
+        # would otherwise add. But that guard also gates newlib's own
+        # #include <sys/types.h>, which is where time_t itself actually
+        # gets typedef'd (under its own separate __time_t_defined guard) --
+        # so without forcing that in first, time_t ends up undeclared.
+        # Force it in explicitly so pebble.h's time_t usages still resolve.
         pebble_cflags.append('-D_TIME_H_')
+        pebble_cflags.append('-include')
+        pebble_cflags.append('sys/types.h')
     pebble_cflags.extend(c_warnings)
 
     pebble_linkflags = ['-mcpu=cortex-m3',

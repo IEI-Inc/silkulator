@@ -226,6 +226,17 @@ int time_util_get_seconds_until_daily_time(struct tm *time, int hour, int minute
 }
 
 void time_util_update_timezone(const TimezoneInfo *tz_info) {
+  // Sizing off the SOURCE here is intentional, not the bug new gcc's
+  // -Wsizeof-pointer-memaccess assumes: per TimezoneInfo's own comment
+  // (time.h), tm_zone is "up to 5 chars, no null terminator" -- i.e. its
+  // TZ_LEN-1-byte array may not contain a '\0' within its own bounds.
+  // Bounding strncpy's read to sizeof(tz_info->tm_zone) (the smaller,
+  // source-sized count) keeps the read inside that array; bounding it to
+  // the larger dest size instead, as the warning suggests, would let
+  // strncpy read one byte past tm_zone's end hunting for a terminator
+  // that's never guaranteed to be there. s_timezone_abbr (dest) is one
+  // byte bigger than this count specifically to leave room for the
+  // explicit '\0' written on the next line.
   strncpy(s_timezone_abbr, tz_info->tm_zone, sizeof(tz_info->tm_zone));
   s_timezone_abbr[TZ_LEN - 1] = '\0';
   s_timezone_gmtoffset = tz_info->tm_gmtoff;

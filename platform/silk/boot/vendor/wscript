@@ -1,5 +1,6 @@
 def configure(conf):
     conf.env.append_unique('DEFINES', 'STM32F412xG')
+    conf.env.append_unique('DEFINES', 'STM32F412Rx')
 
 def build(bld):
     stm32_basedir = 'STM32F4xx_DSP_StdPeriph_Lib_V1.7.0RC1/'

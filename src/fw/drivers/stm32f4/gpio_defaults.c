@@ -17,6 +17,18 @@
 #include "drivers/gpio.h"
 #include "board/board.h"
 
+// silk's STM32F412 only implements GPIOA-D and GPIOH (its CMSIS device
+// header has no GPIOE/F/G/I/J/K -- those ports don't exist on this chip),
+// but the loop below only uses GPIOK as an address *upper bound* to stop
+// iterating, never dereferencing it. Every GPIOx_BASE in the F4 family is
+// AHB1PERIPH_BASE + 0x400 * (alphabetical port index), a fixed, documented
+// address spacing; K is the 11th letter (index 10), so this reconstructs
+// the same sentinel address a chip that did implement GPIOK would have,
+// purely for the loop bound comparison.
+#ifndef GPIOK
+#define GPIOK ((GPIO_TypeDef *)(AHB1PERIPH_BASE + 0x2800UL))
+#endif
+
 void gpio_init_all(void) {
   GPIO_InitTypeDef gpio_init = (GPIO_InitTypeDef) {
     .GPIO_Mode = GPIO_Mode_AN,

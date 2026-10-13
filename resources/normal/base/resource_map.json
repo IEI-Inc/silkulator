@@ -3,7 +3,10 @@
   "media": [
     {
       "name": "FONT_FALLBACK_INTERNAL",
-      "characterRegex": "[0-9a-fx]"
+      "characterRegex": "[0-9a-fx]",
+      "type": "font",
+      "file": "normal/base/ttf/DroidSerif28Bold.ttf",
+      "compress": "RLE4"
     },
     {
       "type": "pdc",
@@ -205,43 +208,43 @@
       "type": "font",
       "name": "LECO_20_BOLD_NUMBERS",
       "file": "normal/base/ttf/LECO1976Regular.otf",
-      "characterRegex": "[ 0-9:/.,°APMHBLTIN-]"
+      "characterRegex": "[ 0-9:/.,\u00b0APMHBLTIN-]"
     },
     {
       "type": "font",
       "name": "LECO_26_BOLD_NUMBERS_AM_PM",
       "file": "normal/base/ttf/LECO1976Regular.otf",
-      "characterRegex": "[ 0-9:/.,°APMHIK\\+\\-\\%]"
+      "characterRegex": "[ 0-9:/.,\u00b0APMHIK\\+\\-\\%]"
     },
     {
       "type": "font",
       "name": "LECO_32_BOLD_NUMBERS",
       "file": "normal/base/ttf/LECO1976Regular.otf",
-      "characterRegex": "[ 0-9:/.,°-]"
+      "characterRegex": "[ 0-9:/.,\u00b0-]"
     },
     {
       "type": "font",
       "name": "LECO_36_BOLD_NUMBERS",
       "file": "normal/base/ttf/LECO1976Regular.otf",
-      "characterRegex": "[ 0-9:/.,°-]"
+      "characterRegex": "[ 0-9:/.,\u00b0-]"
     },
     {
       "type": "font",
       "name": "LECO_38_BOLD_NUMBERS",
       "file": "normal/base/ttf/LECO1976Regular.otf",
-      "characterRegex": "[ 0-9:/.,°?-]"
+      "characterRegex": "[ 0-9:/.,\u00b0?-]"
     },
     {
       "type": "font",
       "name": "LECO_42_NUMBERS",
       "file": "normal/base/ttf/LECO1976Regular.otf",
-      "characterRegex" : "[ 0-9:/.,°-]"
+      "characterRegex": "[ 0-9:/.,\u00b0-]"
     },
     {
       "type": "font",
       "name": "LECO_28_LIGHT_NUMBERS",
       "file": "normal/base/ttf/LECO1976Light.otf",
-      "characterRegex": "[ 0-9:/.,°-]"
+      "characterRegex": "[ 0-9:/.,\u00b0-]"
     },
     {
       "type": "pbi8",
@@ -333,27 +336,33 @@
       "name": "ACTION_BAR_ICON_CHECK",
       "file": "common/base/images/action_bar_icon_check.png",
       "builtin": true,
-      "_comment": ["Built into firmware to ensure that voice API memory contract is not violated",
-                   "Ensure that if this is moved to resources, images are allocated up front when",
-                   "a dictation session is started"]
+      "_comment": [
+        "Built into firmware to ensure that voice API memory contract is not violated",
+        "Ensure that if this is moved to resources, images are allocated up front when",
+        "a dictation session is started"
+      ]
     },
     {
       "type": "pbi8",
       "name": "ACTION_BAR_ICON_UP",
       "file": "normal/base/images/action_bar_icon_up.png",
       "builtin": true,
-      "_comment": ["Built into firmware to ensure that voice API memory contract is not violated",
-                   "Ensure that if this is moved to resources, images are allocated up front when",
-                   "a dictation session is started"]
+      "_comment": [
+        "Built into firmware to ensure that voice API memory contract is not violated",
+        "Ensure that if this is moved to resources, images are allocated up front when",
+        "a dictation session is started"
+      ]
     },
     {
       "type": "pbi8",
       "name": "ACTION_BAR_ICON_DOWN",
       "file": "normal/base/images/action_bar_icon_down.png",
       "builtin": true,
-      "_comment": ["Built into firmware to ensure that voice API memory contract is not violated",
-                   "Ensure that if this is moved to resources, images are allocated up front when",
-                   "a dictation session is started"]
+      "_comment": [
+        "Built into firmware to ensure that voice API memory contract is not violated",
+        "Ensure that if this is moved to resources, images are allocated up front when",
+        "a dictation session is started"
+      ]
     },
     {
       "type": "pbi8",
@@ -392,7 +401,7 @@
     },
     {
       "type": "png",
-     "name": "ACTION_MENU_FADE_BOTTOM",
+      "name": "ACTION_MENU_FADE_BOTTOM",
       "file": "normal/base/images/action_menu_fade_bottom.png"
     },
     {
@@ -620,9 +629,11 @@
       "name": "GENERIC_WARNING_TINY",
       "file": "normal/base/images/Pebble_25x25_Generic_warning.svg",
       "builtin": true,
-      "_comment": ["Built into firmware to ensure that voice API memory contract is not violated",
-                   "Ensure that if this is moved to resources, images are allocated up front when",
-                   "a dictation session is started"]
+      "_comment": [
+        "Built into firmware to ensure that voice API memory contract is not violated",
+        "Ensure that if this is moved to resources, images are allocated up front when",
+        "a dictation session is started"
+      ]
     },
     {
       "type": "pdc",
@@ -1019,9 +1030,11 @@
       "name": "CHECK_INTERNET_CONNECTION_LARGE",
       "file": "normal/base/images/Pebble_80x80_Check_internet_connection.svg",
       "builtin": true,
-      "_comment": ["Built into firmware to ensure that voice API memory contract is not violated",
-                   "Ensure that if this is moved to resources, images are allocated up front when",
-                   "a dictation session is started"]
+      "_comment": [
+        "Built into firmware to ensure that voice API memory contract is not violated",
+        "Ensure that if this is moved to resources, images are allocated up front when",
+        "a dictation session is started"
+      ]
     },
     {
       "type": "pdc",
@@ -1123,9 +1136,11 @@
       "name": "GENERIC_WARNING_LARGE",
       "file": "common/base/images/Pebble_80x80_Generic_warning.svg",
       "builtin": true,
-      "_comment": ["Built into firmware to ensure that voice API memory contract is not violated",
-                   "Ensure that if this is moved to resources, images are allocated up front when",
-                   "a dictation session is started"]
+      "_comment": [
+        "Built into firmware to ensure that voice API memory contract is not violated",
+        "Ensure that if this is moved to resources, images are allocated up front when",
+        "a dictation session is started"
+      ]
     },
     {
       "type": "pdc",
@@ -1292,9 +1307,11 @@
       "name": "WATCH_DISCONNECTED_LARGE",
       "file": "normal/base/images/Pebble_80x80_Watch_disconnected.svg",
       "builtin": true,
-      "_comment": ["Built into firmware to ensure that voice API memory contract is not violated",
-                   "Ensure that if this is moved to resources, images are allocated up front when",
-                   "a dictation session is started"]
+      "_comment": [
+        "Built into firmware to ensure that voice API memory contract is not violated",
+        "Ensure that if this is moved to resources, images are allocated up front when",
+        "a dictation session is started"
+      ]
     },
     {
       "type": "pdc",
@@ -2031,6 +2048,111 @@
       "type": "pdc",
       "name": "AIRPLANE",
       "file": "normal/base/images/Pebble_80x80_Airplane.svg"
+    },
+    {
+      "type": "font",
+      "name": "GOTHIC_09",
+      "file": "normal/base/ttf/Roboto-Condensed.ttf",
+      "characterList": "normal/base/ttf/basic_latin_codepoints.json",
+      "_comment": "Google's open-source release strips the real Pebble 'Raster Gothic' UI font family entirely (both the TTF source files and these resource entries) -- it's a licensed commercial font, not redistributable, and not reconstructible from any public source. Substituted with the nearest available sans-serif face already in this tree (Roboto-Condensed, used elsewhere for ROBOTO_CONDENSED_21) rendered at the real heights the original names encode (parsed from the digits in each name by tools/resources/resource_map/resource_generator_font.py) so layout/metrics code gets a real font of roughly the right size instead of a missing resource."
+    },
+    {
+      "type": "font",
+      "name": "GOTHIC_14",
+      "file": "normal/base/ttf/Roboto-Condensed.ttf",
+      "characterList": "normal/base/ttf/basic_latin_codepoints.json",
+      "_comment": "Google's open-source release strips the real Pebble 'Raster Gothic' UI font family entirely (both the TTF source files and these resource entries) -- it's a licensed commercial font, not redistributable, and not reconstructible from any public source. Substituted with the nearest available sans-serif face already in this tree (Roboto-Condensed, used elsewhere for ROBOTO_CONDENSED_21) rendered at the real heights the original names encode (parsed from the digits in each name by tools/resources/resource_map/resource_generator_font.py) so layout/metrics code gets a real font of roughly the right size instead of a missing resource."
+    },
+    {
+      "type": "font",
+      "name": "GOTHIC_14_BOLD",
+      "file": "normal/base/ttf/Roboto-Condensed.ttf",
+      "characterList": "normal/base/ttf/basic_latin_codepoints.json",
+      "_comment": "Google's open-source release strips the real Pebble 'Raster Gothic' UI font family entirely (both the TTF source files and these resource entries) -- it's a licensed commercial font, not redistributable, and not reconstructible from any public source. Substituted with the nearest available sans-serif face already in this tree (Roboto-Condensed, used elsewhere for ROBOTO_CONDENSED_21) rendered at the real heights the original names encode (parsed from the digits in each name by tools/resources/resource_map/resource_generator_font.py) so layout/metrics code gets a real font of roughly the right size instead of a missing resource."
+    },
+    {
+      "type": "font",
+      "name": "GOTHIC_18",
+      "file": "normal/base/ttf/Roboto-Condensed.ttf",
+      "characterList": "normal/base/ttf/basic_latin_codepoints.json",
+      "_comment": "Google's open-source release strips the real Pebble 'Raster Gothic' UI font family entirely (both the TTF source files and these resource entries) -- it's a licensed commercial font, not redistributable, and not reconstructible from any public source. Substituted with the nearest available sans-serif face already in this tree (Roboto-Condensed, used elsewhere for ROBOTO_CONDENSED_21) rendered at the real heights the original names encode (parsed from the digits in each name by tools/resources/resource_map/resource_generator_font.py) so layout/metrics code gets a real font of roughly the right size instead of a missing resource."
+    },
+    {
+      "type": "font",
+      "name": "GOTHIC_18_BOLD",
+      "file": "normal/base/ttf/Roboto-Condensed.ttf",
+      "characterList": "normal/base/ttf/basic_latin_codepoints.json",
+      "_comment": "Google's open-source release strips the real Pebble 'Raster Gothic' UI font family entirely (both the TTF source files and these resource entries) -- it's a licensed commercial font, not redistributable, and not reconstructible from any public source. Substituted with the nearest available sans-serif face already in this tree (Roboto-Condensed, used elsewhere for ROBOTO_CONDENSED_21) rendered at the real heights the original names encode (parsed from the digits in each name by tools/resources/resource_map/resource_generator_font.py) so layout/metrics code gets a real font of roughly the right size instead of a missing resource."
+    },
+    {
+      "type": "font",
+      "name": "GOTHIC_24",
+      "file": "normal/base/ttf/Roboto-Condensed.ttf",
+      "characterList": "normal/base/ttf/basic_latin_codepoints.json",
+      "_comment": "Google's open-source release strips the real Pebble 'Raster Gothic' UI font family entirely (both the TTF source files and these resource entries) -- it's a licensed commercial font, not redistributable, and not reconstructible from any public source. Substituted with the nearest available sans-serif face already in this tree (Roboto-Condensed, used elsewhere for ROBOTO_CONDENSED_21) rendered at the real heights the original names encode (parsed from the digits in each name by tools/resources/resource_map/resource_generator_font.py) so layout/metrics code gets a real font of roughly the right size instead of a missing resource."
+    },
+    {
+      "type": "font",
+      "name": "GOTHIC_24_BOLD",
+      "file": "normal/base/ttf/Roboto-Condensed.ttf",
+      "characterList": "normal/base/ttf/basic_latin_codepoints.json",
+      "_comment": "Google's open-source release strips the real Pebble 'Raster Gothic' UI font family entirely (both the TTF source files and these resource entries) -- it's a licensed commercial font, not redistributable, and not reconstructible from any public source. Substituted with the nearest available sans-serif face already in this tree (Roboto-Condensed, used elsewhere for ROBOTO_CONDENSED_21) rendered at the real heights the original names encode (parsed from the digits in each name by tools/resources/resource_map/resource_generator_font.py) so layout/metrics code gets a real font of roughly the right size instead of a missing resource."
+    },
+    {
+      "type": "font",
+      "name": "GOTHIC_28",
+      "file": "normal/base/ttf/Roboto-Condensed.ttf",
+      "characterList": "normal/base/ttf/basic_latin_codepoints.json",
+      "_comment": "Google's open-source release strips the real Pebble 'Raster Gothic' UI font family entirely (both the TTF source files and these resource entries) -- it's a licensed commercial font, not redistributable, and not reconstructible from any public source. Substituted with the nearest available sans-serif face already in this tree (Roboto-Condensed, used elsewhere for ROBOTO_CONDENSED_21) rendered at the real heights the original names encode (parsed from the digits in each name by tools/resources/resource_map/resource_generator_font.py) so layout/metrics code gets a real font of roughly the right size instead of a missing resource."
+    },
+    {
+      "type": "font",
+      "name": "GOTHIC_28_BOLD",
+      "file": "normal/base/ttf/Roboto-Condensed.ttf",
+      "characterList": "normal/base/ttf/basic_latin_codepoints.json",
+      "_comment": "Google's open-source release strips the real Pebble 'Raster Gothic' UI font family entirely (both the TTF source files and these resource entries) -- it's a licensed commercial font, not redistributable, and not reconstructible from any public source. Substituted with the nearest available sans-serif face already in this tree (Roboto-Condensed, used elsewhere for ROBOTO_CONDENSED_21) rendered at the real heights the original names encode (parsed from the digits in each name by tools/resources/resource_map/resource_generator_font.py) so layout/metrics code gets a real font of roughly the right size instead of a missing resource."
+    },
+    {
+      "type": "font",
+      "name": "GOTHIC_36",
+      "file": "normal/base/ttf/Roboto-Condensed.ttf",
+      "characterList": "normal/base/ttf/basic_latin_codepoints.json",
+      "_comment": "Google's open-source release strips the real Pebble 'Raster Gothic' UI font family entirely (both the TTF source files and these resource entries) -- it's a licensed commercial font, not redistributable, and not reconstructible from any public source. Substituted with the nearest available sans-serif face already in this tree (Roboto-Condensed, used elsewhere for ROBOTO_CONDENSED_21) rendered at the real heights the original names encode (parsed from the digits in each name by tools/resources/resource_map/resource_generator_font.py) so layout/metrics code gets a real font of roughly the right size instead of a missing resource."
+    },
+    {
+      "type": "font",
+      "name": "GOTHIC_36_BOLD",
+      "file": "normal/base/ttf/Roboto-Condensed.ttf",
+      "characterList": "normal/base/ttf/basic_latin_codepoints.json",
+      "_comment": "Google's open-source release strips the real Pebble 'Raster Gothic' UI font family entirely (both the TTF source files and these resource entries) -- it's a licensed commercial font, not redistributable, and not reconstructible from any public source. Substituted with the nearest available sans-serif face already in this tree (Roboto-Condensed, used elsewhere for ROBOTO_CONDENSED_21) rendered at the real heights the original names encode (parsed from the digits in each name by tools/resources/resource_map/resource_generator_font.py) so layout/metrics code gets a real font of roughly the right size instead of a missing resource."
+    },
+    {
+      "type": "font",
+      "name": "GOTHIC_14_EMOJI",
+      "file": "normal/base/ttf/Roboto-Condensed.ttf",
+      "characterList": "normal/tintin/ttf/tintin_emoji_codepoints.json",
+      "_comment": "Google's open-source release strips the real Pebble 'Raster Gothic' UI font family entirely (both the TTF source files and these resource entries) -- it's a licensed commercial font, not redistributable, and not reconstructible from any public source. Substituted with the nearest available sans-serif face already in this tree (Roboto-Condensed, used elsewhere for ROBOTO_CONDENSED_21) rendered at the real heights the original names encode (parsed from the digits in each name by tools/resources/resource_map/resource_generator_font.py) so layout/metrics code gets a real font of roughly the right size instead of a missing resource. Emoji glyph coverage itself is also missing (no real emoji font is present anywhere in this tree); this substitute font has no emoji glyphs either, so these will render as fallback/missing-glyph boxes rather than real emoji -- a second, separate gap from the Gothic font redaction itself, left as-is since there's no available substitute emoji artwork to draw from."
+    },
+    {
+      "type": "font",
+      "name": "GOTHIC_18_EMOJI",
+      "file": "normal/base/ttf/Roboto-Condensed.ttf",
+      "characterList": "normal/tintin/ttf/tintin_emoji_codepoints.json",
+      "_comment": "Google's open-source release strips the real Pebble 'Raster Gothic' UI font family entirely (both the TTF source files and these resource entries) -- it's a licensed commercial font, not redistributable, and not reconstructible from any public source. Substituted with the nearest available sans-serif face already in this tree (Roboto-Condensed, used elsewhere for ROBOTO_CONDENSED_21) rendered at the real heights the original names encode (parsed from the digits in each name by tools/resources/resource_map/resource_generator_font.py) so layout/metrics code gets a real font of roughly the right size instead of a missing resource. Emoji glyph coverage itself is also missing (no real emoji font is present anywhere in this tree); this substitute font has no emoji glyphs either, so these will render as fallback/missing-glyph boxes rather than real emoji -- a second, separate gap from the Gothic font redaction itself, left as-is since there's no available substitute emoji artwork to draw from."
+    },
+    {
+      "type": "font",
+      "name": "GOTHIC_24_EMOJI",
+      "file": "normal/base/ttf/Roboto-Condensed.ttf",
+      "characterList": "normal/tintin/ttf/tintin_emoji_codepoints.json",
+      "_comment": "Google's open-source release strips the real Pebble 'Raster Gothic' UI font family entirely (both the TTF source files and these resource entries) -- it's a licensed commercial font, not redistributable, and not reconstructible from any public source. Substituted with the nearest available sans-serif face already in this tree (Roboto-Condensed, used elsewhere for ROBOTO_CONDENSED_21) rendered at the real heights the original names encode (parsed from the digits in each name by tools/resources/resource_map/resource_generator_font.py) so layout/metrics code gets a real font of roughly the right size instead of a missing resource. Emoji glyph coverage itself is also missing (no real emoji font is present anywhere in this tree); this substitute font has no emoji glyphs either, so these will render as fallback/missing-glyph boxes rather than real emoji -- a second, separate gap from the Gothic font redaction itself, left as-is since there's no available substitute emoji artwork to draw from."
+    },
+    {
+      "type": "font",
+      "name": "GOTHIC_28_EMOJI",
+      "file": "normal/base/ttf/Roboto-Condensed.ttf",
+      "characterList": "normal/tintin/ttf/tintin_emoji_codepoints.json",
+      "_comment": "Google's open-source release strips the real Pebble 'Raster Gothic' UI font family entirely (both the TTF source files and these resource entries) -- it's a licensed commercial font, not redistributable, and not reconstructible from any public source. Substituted with the nearest available sans-serif face already in this tree (Roboto-Condensed, used elsewhere for ROBOTO_CONDENSED_21) rendered at the real heights the original names encode (parsed from the digits in each name by tools/resources/resource_map/resource_generator_font.py) so layout/metrics code gets a real font of roughly the right size instead of a missing resource. Emoji glyph coverage itself is also missing (no real emoji font is present anywhere in this tree); this substitute font has no emoji glyphs either, so these will render as fallback/missing-glyph boxes rather than real emoji -- a second, separate gap from the Gothic font redaction itself, left as-is since there's no available substitute emoji artwork to draw from."
     }
   ],
   "timeline": [

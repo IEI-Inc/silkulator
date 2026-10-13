@@ -418,7 +418,12 @@ bool word_trim_preceeding_codepoint(GContext* ctx, Word* word, const Codepoint c
 
   if (word->end == char_iter_state.utf8_iter_state.current) {
     // Word has been completely trimmed; init a new word
-    bool is_end_of_text = (word->end == NULL_CODEPOINT ||
+    // word->end is a pointer, not a codepoint; NULL_CODEPOINT ('\0') is
+    // numerically 0 same as NULL, so this worked, but new gcc's
+    // -Wpointer-compare correctly flags comparing a pointer against a
+    // char constant as type-confused. Comparing to NULL directly is the
+    // exact same runtime check with no behavior change.
+    bool is_end_of_text = (word->end == NULL ||
         char_iter_state.utf8_iter_state.current >= text_box_params->utf8_bounds->end);
 
     if (!is_end_of_text) {
