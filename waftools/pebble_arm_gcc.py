@@ -292,7 +292,35 @@ Or re-configure with the --relax_toolchain_restrictions option. """
              # internal idiom-recognition pass -- so this must be disabled
              # outright for any freestanding libc build providing its own
              # implementations of these functions.
-             '-fno-tree-loop-distribute-patterns' ]
+             '-fno-tree-loop-distribute-patterns',
+             # src/fw/applib/event_service_client.h's EventServiceInfo is
+             # declared `__attribute__((packed))` specifically so that its
+             # embedded ListNode can land at any byte offset (every static
+             # EventServiceInfo instance, e.g. phone_call.c's
+             # phone_event_info/mobile_app_event_info/
+             # ancs_disconnected_event_info, is packed back-to-back with
+             # its neighbors with no inter-object padding -- confirmed in
+             # the linked ELF: mobile_app_event_info.1 sits at an ODD
+             # address, ancs_disconnected_event_info.0 right after it at
+             # a 2-byte-aligned-but-not-4-byte-aligned one). Cortex-M3/M4
+             # tolerate plain misaligned LDR/STR transparently in hardware
+             # (no trap), which is exactly what this design relies on --
+             # but modern gcc's ARM backend fuses adjacent-field accesses
+             # like list_insert_after()'s `new_node->next = ...; new_node
+             # ->prev = ...;` into a single STRD, and LDRD/STRD are *not*
+             # tolerant of misalignment on ARMv7-M: they fault uncondit-
+             # ionally regardless of the CCR.UNALIGN_TRP setting. That's
+             # the exact UsageFault (CFSR UNALIGNED bit) hit here, in
+             # list_insert_after called from event_service_client_subscribe
+             # by name="static EventServiceInfo mobile_app_event_info" by way of list_sorted_add,
+             # the first time an EventServiceInfo past the first one got
+             # linked into a subscriber list. -mno-unaligned-access tells
+             # gcc the target cannot safely do unaligned word accesses at
+             # all, which stops it from ever emitting LDRD/STRD for plain
+             # struct-field stores like this (confirmed: disassembling
+             # list_insert_after with/without this flag shows the single
+             # `strd r3, r0, [r1]` replaced by two separate `str` ops).
+             '-mno-unaligned-access' ]
 
     if not conf.options.no_debug:
         args += [ '-g3',  # Extra debugging info, including macro definitions
