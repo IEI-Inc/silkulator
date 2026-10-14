@@ -226,6 +226,19 @@ class PebbleQemuLink:
         # blocking UART write stalls boot. Interface() starts a background
         # thread that drains it from the first byte.
         pulse2 = _import_pulse2(self.repo)
+        if sys.platform == "darwin":
+            # pyserial's default DBGSERIAL_PORT_SETTINGS asks for a
+            # 1,000,000 baud rate. That's not one of macOS's standard
+            # termios speeds, so pyserial falls back to a custom-baud-rate
+            # ioctl (IOSSIOSPEED) to set it. That ioctl is only implemented
+            # for real serial devices -- a BSD pty (which is what QEMU's
+            # "-serial pty" hands back here) doesn't support it, so the
+            # open fails with OSError: [Errno 25] Inappropriate ioctl for
+            # device. The baud rate is meaningless over a pty anyway (QEMU
+            # doesn't rate-limit a pty-backed chardev), so just ask for a
+            # standard rate pyserial can set without the custom ioctl.
+            pulse2.link.DBGSERIAL_PORT_SETTINGS = dict(
+                pulse2.link.DBGSERIAL_PORT_SETTINGS, baudrate=115200)
         self._iface = pulse2.Interface.open_dbgserial(url=pty_path)
         self._link = self._iface.get_link(timeout=30)
         if self._link is None:
