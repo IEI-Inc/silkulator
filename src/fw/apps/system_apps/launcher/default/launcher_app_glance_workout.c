@@ -92,12 +92,31 @@ static bool prv_set_glance_icon(LauncherAppGlanceWorkout *workout_glance,
     return false;
   }
 
-  // Destroy the existing icon
-  kino_reel_destroy(workout_glance->icon);
+  // Load the new icon before touching any existing state. This used to
+  // PBL_ASSERTN() the result, which brought down the whole system any time this
+  // particular resource failed to load or decode -- this runs off a 1-second
+  // repeating timer (see app_timer_register_repeatable() below), so a single
+  // bad icon resource (missing, corrupt, or just a transient allocation
+  // failure) didn't just fail to show an icon, it reliably crashed the
+  // firmware within a second of the glance becoming visible. A bad icon on one
+  // glance should degrade that one glance, not take down the launcher, so a
+  // failed load now just logs and leaves the previous icon in place.
+  KinoReel *new_icon = kino_reel_create_with_resource(new_icon_resource_id);
+  if (!new_icon) {
+    PBL_LOG(LOG_LEVEL_ERROR,
+            "Failed to load workout glance icon resource %"PRIu32"; keeping previous icon",
+            new_icon_resource_id);
+    // Remember we tried this resource ID so we don't retry (and re-log) it
+    // again on every subsequent 1-second timer tick while nothing has
+    // changed. If the workout type changes away and back, this gets
+    // re-attempted normally.
+    workout_glance->icon_resource_id = new_icon_resource_id;
+    return false;
+  }
 
-  // Set the new icon and record its resource ID
-  workout_glance->icon = kino_reel_create_with_resource(new_icon_resource_id);
-  PBL_ASSERTN(workout_glance->icon);
+  // Destroy the existing icon now that the new one has successfully loaded.
+  kino_reel_destroy(workout_glance->icon);
+  workout_glance->icon = new_icon;
   workout_glance->icon_resource_id = new_icon_resource_id;
 
   return true;
