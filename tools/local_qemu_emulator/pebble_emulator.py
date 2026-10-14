@@ -24,6 +24,7 @@ import argparse
 import queue
 import sys
 import threading
+import time
 import traceback
 import tkinter as tk
 from tkinter import ttk
@@ -36,7 +37,23 @@ from pebble_link import (
 )
 
 SCALE = 3
-POLL_INTERVAL_S = 0.4  # how often the background thread pulls a new frame
+# Target gap *between the start of one read_frame() and the start of the
+# next*, not an unconditional sleep tacked on after each read. The old code
+# slept this long *in addition to* however long read_frame() itself took
+# (a full PULSE2 OPEN+READ(s)+CLOSE round trip), so actual frame time was
+# POLL_INTERVAL_S + read latency -- capping real-world throughput at ~2.5
+# fps even though read_frame() alone is well under that. _poll_loop() now
+# subtracts the elapsed read time from the wait, so this constant is an
+# actual rate cap rather than a fixed per-frame tax.
+#
+# Don't drop this much below ~0.1s: read_frame() opens the bulkio
+# framebuffer domain (which calls animation_private_pause() firmware-side)
+# and closes it again after every single read (animation_private_resume()
+# + a forced redraw) -- see pebble_link.py's read_frame() docstring.
+# Polling faster than the UI can even display (UI_POLL_MS below) just
+# means more pause/resume cycling on the firmware's animation system for
+# frames that get thrown away anyway.
+POLL_INTERVAL_S = 0.1  # how often the background thread pulls a new frame
 UI_POLL_MS = 100       # how often Tkinter checks for a new frame to draw
 
 
@@ -133,6 +150,7 @@ class PebbleEmulatorApp:
 
     def _poll_loop(self):
         while not self._stopping:
+            frame_start = time.monotonic()
             try:
                 frame = self.link.read_frame()
                 pixels = decode_1bit_framebuffer(frame, self.link.width, self.link.height)
@@ -147,10 +165,17 @@ class PebbleEmulatorApp:
                 self.status_queue.put(f"(frame read error, retrying: {e})")
             except Exception as e:
                 self.status_queue.put(f"(unexpected error, retrying: {e})")
-            for _ in range(int(POLL_INTERVAL_S * 10)):
+            # Wait only the *remainder* of POLL_INTERVAL_S after subtracting
+            # however long that read_frame() round trip actually took --
+            # previously this slept POLL_INTERVAL_S unconditionally on top
+            # of the read, so real frame time was read latency + 0.4s
+            # regardless of how fast the read itself was.
+            remaining = POLL_INTERVAL_S - (time.monotonic() - frame_start)
+            deadline = time.monotonic() + max(remaining, 0)
+            while time.monotonic() < deadline:
                 if self._stopping:
                     return
-                threading.Event().wait(0.1)
+                threading.Event().wait(0.02)
 
     def _click(self, button):
         if self._stopping or not self.link._link:
