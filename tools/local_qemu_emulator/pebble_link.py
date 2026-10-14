@@ -132,13 +132,20 @@ class PebbleQemuLink:
     """
 
     def __init__(self, repo, qemu_bin=None, kernel=None, spi=None,
-                 machine="pebble-silk-bb", extra_qemu_args=None):
+                 machine="pebble-silk-bb", extra_qemu_args=None,
+                 pebble_control_socket_path=None):
         self.repo = os.path.abspath(repo)
         self.qemu_bin = qemu_bin or self._default_qemu_bin()
         self.kernel = kernel or os.path.join(self.repo, "build", "qemu_micro_flash.bin")
         self.spi = spi or os.path.join(self.repo, "build", "qemu_spi_flash.bin")
         self.machine = machine
         self.extra_qemu_args = extra_qemu_args or []
+        # When set, USART2 (the firmware's "pebble_control" port, used by the
+        # qemu bluetooth-fw backend for its fake BT transport -- see
+        # pebble_control_protocol.py) is exposed as a unix-domain socket at
+        # this path instead of being wired to a null chardev. A separate
+        # process (e.g. the macOS BLE bridge) connects to it as a client.
+        self.pebble_control_socket_path = pebble_control_socket_path
 
         self.width = None
         self.height = None
@@ -187,9 +194,35 @@ class PebbleQemuLink:
                 raise PebbleLinkError(f"{label} not found: {path}\n"
                                        "Did you run pebble_build.py first?")
 
-        cmd = [self.qemu_bin, "-M", self.machine,
+        # -serial ordering here matters and is NOT obvious from the flags
+        # alone: QEMU's serial_hd(N) is 0-indexed by -serial occurrence, and
+        # hw/arm/pebble.c's pebble_connect_uarts() wires serial_hd(1) (the
+        # *second* -serial arg) to the firmware's pebble_control port
+        # (USART2) and serial_hd(2) (the third) to dbgserial (USART1, what
+        # PULSE2 below actually talks to). serial_hd(0) (the first) is
+        # unused by this machine. Confirmed directly against
+        # hw/arm/pebble_control.c / hw/arm/pebble.c -- don't reorder these.
+        second_serial = "null"
+        if self.pebble_control_socket_path:
+            # Remove a stale socket file from a previous run; QEMU's
+            # server=on,wait=off chardev will refuse to bind over a leftover
+            # one and fail silently from this script's point of view.
+            try:
+                os.unlink(self.pebble_control_socket_path)
+            except FileNotFoundError:
+                pass
+            cmd_prefix = [
+                "-chardev",
+                f"socket,id=pebctl,path={self.pebble_control_socket_path},"
+                "server=on,wait=off",
+            ]
+            second_serial = "chardev:pebctl"
+        else:
+            cmd_prefix = []
+
+        cmd = [self.qemu_bin, "-M", self.machine] + cmd_prefix + [
                "-kernel", self.kernel, "-mtdblock", self.spi,
-               "-serial", "null", "-serial", "null", "-serial", "pty",
+               "-serial", "null", "-serial", second_serial, "-serial", "pty",
                "-display", "none", "-no-reboot"] + self.extra_qemu_args
 
         self._proc = subprocess.Popen(

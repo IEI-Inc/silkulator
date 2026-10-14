@@ -233,11 +233,19 @@ def main():
     parser.add_argument("--boot-settle", type=int, default=12,
                          help="Seconds to wait after link-up before dismissing any "
                               "stale reset dialog and starting the live view (default: 12)")
+    parser.add_argument("--bt-bridge-socket", default=None,
+                         help="Expose the firmware's pebble_control port (its fake BT "
+                              "transport) as a unix-domain socket at this path, for a "
+                              "separate BLE bridge process (e.g. "
+                              "tools/ble_bridge/pebble_ble_bridge.py) to connect to. "
+                              "Not needed for normal use -- only for BLE bridging.")
     args = parser.parse_args()
 
     link_kwargs = {"repo": args.repo}
     if args.qemu:
         link_kwargs["qemu_bin"] = args.qemu
+    if args.bt_bridge_socket:
+        link_kwargs["pebble_control_socket_path"] = args.bt_bridge_socket
 
     root = tk.Tk()
     app = PebbleEmulatorApp(root, link_kwargs, args.boot_settle)
