@@ -557,7 +557,15 @@ class ReliableTransport(object):
             return
 
         # Information packets have the LSBit of the first byte cleared.
-        is_info = (bytearray(packet[0])[0] & 0b1) == 0
+        # NOTE: written for Python 2, where packet[0] on a str/bytes
+        # yields a length-1 str, and bytearray(<length-1 str>) is a
+        # 1-element bytearray of that byte's value. In Python 3,
+        # packet[0] is already the int, and bytearray(<int>) instead
+        # allocates a zero-filled bytearray of that many bytes -- a
+        # completely different (and here, usually crashing or wrong)
+        # operation. bytearray(packet)[0] is the Python-2/3-portable
+        # equivalent: convert the whole packet first, then index.
+        is_info = (bytearray(packet)[0] & 0b1) == 0
         try:
             if is_info:
                 fields = ReliableInfoPacket.parse(packet)

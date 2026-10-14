@@ -54,7 +54,12 @@ class PCMPPacket(collections.namedtuple('PCMPPacket', 'code information')):
         packet = bytes(packet)
         if len(packet) < 1:
             raise ParseError('packet too short')
-        return cls(code=struct.unpack('B', packet[0])[0],
+        # NOTE: written for Python 2, where packet[0] on a str/bytes
+        # yields a length-1 str (a valid struct.unpack() argument). In
+        # Python 3, indexing bytes with an int yields the int itself,
+        # which struct.unpack() rejects. packet[0:1] (a slice) is the
+        # Python-3-correct equivalent that still yields length-1 bytes.
+        return cls(code=struct.unpack('B', packet[0:1])[0],
                    information=packet[1:])
 
     @staticmethod
