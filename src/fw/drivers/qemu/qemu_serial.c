@@ -24,6 +24,7 @@
 #include "kernel/pbl_malloc.h"
 #include "popups/timeline/peek.h"
 #include "process_management/app_manager.h"
+#include "services/normal/activity/activity.h"
 #include "shell/system_theme.h"
 #include "services/common/clock.h"
 #include "services/common/system_task.h"
@@ -166,6 +167,46 @@ static void prv_content_size_msg_callback(const uint8_t *data, uint32_t len) {
 
 
 // -----------------------------------------------------------------------------------------
+// Handle an incoming test-only "set today's step count" packet
+// (QemuProtocol_HealthSteps). See the struct's doc comment in qemu_serial.h --
+// this has no real-hardware equivalent, it's purely a hook for a host-side
+// "Pebble App" stand-in (tools/ble_bridge/) to feed step data into the
+// on-watch activity tracker without needing to synthesize a plausible
+// accelerometer waveform.
+static void prv_health_steps_system_cb(void *context) {
+  const int32_t steps = (int32_t)(intptr_t)context;
+  activity_test_set_steps_and_avg(steps, steps, steps);
+}
+
+static void prv_health_steps_msg_callback(const uint8_t *data, uint32_t len) {
+  QemuProtocolHealthStepsHeader *hdr = (QemuProtocolHealthStepsHeader *)data;
+  if (len != sizeof(*hdr)) {
+    PBL_LOG(LOG_LEVEL_ERROR, "Invalid packet length");
+    return;
+  }
+
+  const int32_t steps = ntohs(hdr->steps);
+  PBL_LOG(LOG_LEVEL_INFO, "Qemu HealthSteps: setting today's steps to %"PRId32, steps);
+  // Two things confirmed necessary against a live QEMU instance, not
+  // guessed:
+  // 1) activity_test_set_steps_and_avg() must run on KernelBackground (same
+  //    pattern as activity_test_send_fake_dls_records() below) -- calling
+  //    it directly from this dispatch context hit a bare wtf()/"*** WTF".
+  // 2) The activity algorithm (kraepelin)'s internal state doesn't exist
+  //    at all (s_alg_state == NULL) until activity tracking has actually
+  //    been started at least once -- a fresh QEMU boot never does this on
+  //    its own since there's no phone around yet to trigger it. Calling
+  //    activity_start_tracking() first (idempotent -- it's a no-op if
+  //    already started) enqueues its own KernelBackground callback via the
+  //    same system_task_add_callback() queue, so queuing our step-setting
+  //    callback right after it guarantees FIFO ordering: tracking finishes
+  //    initializing before we touch its state.
+  activity_start_tracking(false /* test_mode */);
+  system_task_add_callback(prv_health_steps_system_cb, (void *)(intptr_t)steps);
+}
+
+
+// -----------------------------------------------------------------------------------------
 // List of incoming message handlers
 static const QemuMessageHandler s_qemu_endpoints[] = {
   // IMPORTANT: These must be in sorted order!!
@@ -178,6 +219,7 @@ static const QemuMessageHandler s_qemu_endpoints[] = {
   { QemuProtocol_TimeFormat, prv_time_format_msg_callback },
   { QemuProtocol_TimelinePeek, prv_timeline_peek_msg_callback },
   { QemuProtocol_ContentSize, prv_content_size_msg_callback },
+  { QemuProtocol_HealthSteps, prv_health_steps_msg_callback },
   // Button messages are handled by QEMU directly
 };
 

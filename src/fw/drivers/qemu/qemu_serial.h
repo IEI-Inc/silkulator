@@ -38,6 +38,7 @@ typedef enum {
   QemuProtocol_TimeFormat = 9,
   QemuProtocol_TimelinePeek = 10,
   QemuProtocol_ContentSize = 11,
+  QemuProtocol_HealthSteps = 12,
 } QemuProtocol;
 
 
@@ -121,6 +122,18 @@ typedef struct PACKED {
   //! New system content size.
   uint8_t size;
 } QemuProtocolContentSizeHeader;
+
+// QemuProtocol_HealthSteps
+// Not a real Pebble protocol message -- this is purely a host<->QEMU testing
+// hook (see tools/ble_bridge/) to let a host-side "Pebble App" stand-in push
+// a step count into the watch's own on-device activity tracker, the same
+// way activity_demo_app.c's debug menu does via activity_test_set_steps_and_avg().
+// Real Pebble hardware has no equivalent inbound message: step counts are
+// always computed on-watch from the accelerometer, never pushed in from the
+// phone.
+typedef struct PACKED {
+  uint16_t steps;   // network byte order; today's total step count to set
+} QemuProtocolHealthStepsHeader;
 #if !UNITTEST
 _Static_assert(sizeof(PreferredContentSize) == sizeof(((QemuProtocolContentSizeHeader *)0)->size),
                "sizeof(PreferredContentSize) grew, need to update QemuContentSize in libpebble2 !");

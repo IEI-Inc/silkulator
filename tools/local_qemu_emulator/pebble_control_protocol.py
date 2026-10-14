@@ -65,6 +65,15 @@ QemuProtocol_Battery = 5
 QemuProtocol_Accel = 6
 QemuProtocol_Vibration = 7
 QemuProtocol_Button = 8
+QemuProtocol_TimeFormat = 9
+QemuProtocol_TimelinePeek = 10
+QemuProtocol_ContentSize = 11
+# Not a real Pebble-hardware protocol -- a QEMU/firmware-only testing hook
+# (see qemu_serial.h's QemuProtocolHealthStepsHeader doc comment) that lets a
+# host-side "Pebble App" stand-in push a step count straight into the
+# on-watch activity tracker, bypassing the need to synthesize a plausible
+# accelerometer waveform.
+QemuProtocol_HealthSteps = 12
 
 _HDR_STRUCT = struct.Struct(">HHH")  # signature, protocol, len
 _FOOTER_STRUCT = struct.Struct(">H")  # signature
@@ -133,6 +142,12 @@ class QemuControlSocket:
 
     def send_bt_connected(self, connected):
         self.send(QemuProtocol_BluetoothConnection, bytes([1 if connected else 0]))
+
+    def send_health_steps(self, steps):
+        """Set today's step count on the watch directly (testing hook, see
+        QemuProtocol_HealthSteps's doc comment -- no real watch accepts this
+        over the air, it's QEMU/firmware-only)."""
+        self.send(QemuProtocol_HealthSteps, struct.pack(">H", steps & 0xFFFF))
 
     # -- receiving ---------------------------------------------------------
 
