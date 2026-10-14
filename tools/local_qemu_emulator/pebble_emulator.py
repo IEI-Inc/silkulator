@@ -21,8 +21,10 @@ Controls:
 """
 
 import argparse
+import os
 import queue
 import sys
+import tempfile
 import threading
 import time
 import traceback
@@ -35,6 +37,8 @@ from pebble_link import (
     PebbleQemuLink, PebbleLinkError, decode_1bit_framebuffer,
     BUTTON_BACK, BUTTON_UP, BUTTON_SELECT, BUTTON_DOWN,
 )
+from pebble_control_protocol import QemuControlSocket, QemuControlError
+from pebble_app_tab import PebbleAppTab
 
 SCALE = 3
 # Target gap *between the start of one read_frame() and the start of the
@@ -65,6 +69,7 @@ class PebbleEmulatorApp:
 
         self.link = PebbleQemuLink(**link_kwargs)
         self.boot_settle_seconds = boot_settle_seconds
+        self._control_channel = None  # QemuControlSocket, set once QEMU is up
 
         self.frame_queue = queue.Queue(maxsize=1)
         self.status_queue = queue.Queue()
@@ -81,7 +86,19 @@ class PebbleEmulatorApp:
     # -- UI layout ---------------------------------------------------
 
     def _build_ui(self):
-        outer = ttk.Frame(self.root, padding=10)
+        notebook = ttk.Notebook(self.root)
+        notebook.grid(row=0, column=0, sticky="nsew")
+
+        watch_tab = ttk.Frame(notebook)
+        notebook.add(watch_tab, text="Watch")
+
+        self.pebble_app_tab = PebbleAppTab(notebook, log_cb=self.status_queue.put)
+        notebook.add(self.pebble_app_tab, text="Pebble App")
+
+        self._build_watch_tab(watch_tab)
+
+    def _build_watch_tab(self, root_frame):
+        outer = ttk.Frame(root_frame, padding=10)
         outer.grid(row=0, column=0)
 
         self.status_var = tk.StringVar(value="Starting QEMU...")
@@ -129,6 +146,7 @@ class PebbleEmulatorApp:
             self.status_queue.put(
                 f"Connected -- {self.link.width}x{self.link.height}, "
                 f"{self.link.bpp}bpp")
+            self._connect_control_channel()
         except PebbleLinkError as e:
             self.status_queue.put(f"FAILED TO START: {e}")
             return
@@ -147,6 +165,23 @@ class PebbleEmulatorApp:
             return
 
         self._poll_loop()
+
+    def _connect_control_channel(self):
+        """Open the pebble_control socket for the "Pebble App" tab, which
+        always needs one regardless of whether --bt-bridge-socket was
+        passed for an *external* bridge process -- main() defaults
+        link.pebble_control_socket_path to a private path for exactly this
+        case. Failure here shouldn't take down the whole GUI (the watch
+        screen/buttons still work fine without it); it just means the
+        Pebble App tab stays disconnected."""
+        try:
+            ctl = QemuControlSocket()
+            ctl.connect(self.link.pebble_control_socket_path, timeout=10)
+            ctl.send_bt_connected(True)
+            self._control_channel = ctl
+            self.pebble_app_tab.set_control_channel(ctl)
+        except QemuControlError as e:
+            self.status_queue.put(f"(Pebble App tab couldn't connect: {e})")
 
     def _poll_loop(self):
         while not self._stopping:
@@ -215,6 +250,12 @@ class PebbleEmulatorApp:
         threading.Thread(target=self._shutdown_bg, daemon=True).start()
 
     def _shutdown_bg(self):
+        self.pebble_app_tab.stop()
+        try:
+            if self._control_channel is not None:
+                self._control_channel.close()
+        except Exception:
+            pass
         try:
             self.link.stop()
         except Exception:
@@ -238,14 +279,17 @@ def main():
                               "transport) as a unix-domain socket at this path, for a "
                               "separate BLE bridge process (e.g. "
                               "tools/ble_bridge/pebble_ble_bridge.py) to connect to. "
-                              "Not needed for normal use -- only for BLE bridging.")
+                              "The 'Pebble App' tab always needs this port open regardless "
+                              "-- if you don't pass this, a private path in a temp dir is "
+                              "used automatically, just for that tab's own use.")
     args = parser.parse_args()
 
     link_kwargs = {"repo": args.repo}
     if args.qemu:
         link_kwargs["qemu_bin"] = args.qemu
-    if args.bt_bridge_socket:
-        link_kwargs["pebble_control_socket_path"] = args.bt_bridge_socket
+    link_kwargs["pebble_control_socket_path"] = (
+        args.bt_bridge_socket
+        or os.path.join(tempfile.mkdtemp(prefix="pebble_control_"), "pebble_control.sock"))
 
     root = tk.Tk()
     app = PebbleEmulatorApp(root, link_kwargs, args.boot_settle)
