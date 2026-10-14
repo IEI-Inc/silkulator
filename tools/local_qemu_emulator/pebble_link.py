@@ -268,16 +268,16 @@ class PebbleQemuLink:
             self.stop()
             raise PebbleLinkError("Could not open the PULSE2 bulkio socket.")
 
+        # Open the domain just long enough to STAT it (to learn
+        # width/height/bpp/fb_length), then immediately close it again --
+        # see read_frame()'s docstring for why this domain must not be
+        # left open across button clicks.
         self._open_framebuffer_domain()
+        self._close_framebuffer_domain()
 
     def stop(self):
         try:
-            if self._fb_fd is not None and self._fb_sock is not None:
-                self._fb_sock.send(struct.pack("<BB", 2, self._fb_fd))  # CLOSE
-                try:
-                    self._fb_sock.receive(block=True, timeout=3)
-                except Exception:
-                    pass
+            self._close_framebuffer_domain()
         except Exception:
             pass
         for sock in (self._fb_sock, self._prompt_sock):
@@ -327,10 +327,41 @@ class PebbleQemuLink:
             _flags, width, height, bpp, length = struct.unpack("<BBBBI", resp[2:10])
             self.width, self.height, self.bpp, self.fb_length = width, height, bpp, length
 
+    def _close_framebuffer_domain(self):
+        with self._fb_lock:
+            if self._fb_fd is None or self._fb_sock is None:
+                return
+            fd, self._fb_fd = self._fb_fd, None
+            self._fb_sock.send(struct.pack("<BB", 2, fd))  # CLOSE
+            try:
+                self._fb_sock.receive(block=True, timeout=3)
+            except Exception:
+                pass
+
     def read_frame(self, _retry=True):
         """Read one full framebuffer snapshot. Returns raw packed bytes
         (1 bit per pixel, MSB... see pebble_emulator.py's decode for the
         exact row layout) -- exactly `self.fb_length` bytes.
+
+        The firmware's framebuffer bulkio domain (pulse_bulkio_framebuffer.c)
+        calls animation_private_pause() on OPEN and only calls
+        animation_private_resume() (plus forces a compositor redraw) on
+        CLOSE -- that pause/resume bracket exists so a snapshot can't be
+        read mid-tear while something is actively redrawing. An earlier
+        version of this class opened the domain once in start() and never
+        closed it until stop(), which meant animation_private_pause() was
+        called once at boot and never undone for the entire run: every
+        button click still fully dispatched through the kernel event
+        queue and the app still received it and asked to render, but with
+        animations permanently paused system-wide, none of the resulting
+        screen updates (menu selection highlight, app-launch transition,
+        etc.) ever actually drew -- read_frame() kept returning the exact
+        same bytes no matter how many clicks were sent, even though the
+        firmware had acknowledged every single one. Opening the domain
+        fresh for each read and closing it again right after (which is
+        what actually triggers animation_private_resume() +
+        compositor_display_update()) keeps snapshots tear-free without
+        leaving animations frozen in between.
 
         IMPORTANT chunk sizing: the firmware's READ handler
         (prv_domain_read_cb in pulse_bulkio.c) auto-continues on its own
@@ -356,38 +387,43 @@ class PebbleQemuLink:
         own actual single-packet limit guarantees one command : one
         response, with no auto-continuation ever triggered.
         """
-        if self._fb_fd is None:
+        if self._fb_sock is None:
             raise PebbleLinkError("read_frame() called before start()")
         with self._fb_lock:
-            data = bytearray()
-            pos = 0
-            length = self.fb_length
-            # PULSE_MAX_SEND_SIZE(520) - sizeof(ReadResponse)(6); see the
-            # docstring above for why this must not simply be the MTU.
-            chunk_size = 514
-            while pos < length:
-                want = min(chunk_size, length - pos)
-                self._fb_sock.send(struct.pack("<BBII", 3, self._fb_fd, pos, want))  # READ
-                resp = self._fb_sock.receive(block=True, timeout=10)
-                if resp[0] == 0xc1:  # BULKIO_RESP_INTERNAL_ERROR
-                    if not _retry:
-                        raise PebbleLinkError(
-                            f"Framebuffer read failed even after reopening: {resp!r}")
-                    self._open_framebuffer_domain()
-                    return self.read_frame(_retry=False)
-                if resp[0] != 0x82:
-                    raise PebbleLinkError(f"Unexpected READ response: {resp!r}")
-                payload = resp[6:]
-                if not payload:
-                    break
-                # The firmware may pad the final chunk to its own internal
-                # transfer unit; never let the buffer grow past the real
-                # framebuffer length.
-                remaining = length - pos
-                payload = payload[:remaining]
-                data.extend(payload)
-                pos += len(payload)
-            return bytes(data[:length])
+            self._open_framebuffer_domain()
+            try:
+                data = bytearray()
+                pos = 0
+                length = self.fb_length
+                # PULSE_MAX_SEND_SIZE(520) - sizeof(ReadResponse)(6); see
+                # the docstring above for why this must not simply be the
+                # MTU.
+                chunk_size = 514
+                while pos < length:
+                    want = min(chunk_size, length - pos)
+                    self._fb_sock.send(struct.pack("<BBII", 3, self._fb_fd, pos, want))  # READ
+                    resp = self._fb_sock.receive(block=True, timeout=10)
+                    if resp[0] == 0xc1:  # BULKIO_RESP_INTERNAL_ERROR
+                        if not _retry:
+                            raise PebbleLinkError(
+                                f"Framebuffer read failed even after reopening: {resp!r}")
+                        self._close_framebuffer_domain()
+                        return self.read_frame(_retry=False)
+                    if resp[0] != 0x82:
+                        raise PebbleLinkError(f"Unexpected READ response: {resp!r}")
+                    payload = resp[6:]
+                    if not payload:
+                        break
+                    # The firmware may pad the final chunk to its own
+                    # internal transfer unit; never let the buffer grow
+                    # past the real framebuffer length.
+                    remaining = length - pos
+                    payload = payload[:remaining]
+                    data.extend(payload)
+                    pos += len(payload)
+                return bytes(data[:length])
+            finally:
+                self._close_framebuffer_domain()
 
     # -- buttons ---------------------------------------------------
 
@@ -405,14 +441,35 @@ class PebbleQemuLink:
         else:
             raise ValueError("kind must be 'short' or 'long'")
 
+        from pebble.pulse2 import exceptions
+
         with self._prompt_lock:
             self._prompt_sock.send(command.encode())
             deadline = time.time() + 10
-            while time.time() < deadline:
+            while True:
+                remaining = deadline - time.time()
+                if remaining <= 0:
+                    raise PebbleLinkError(f"Timed out waiting for '{command}' to complete")
                 try:
-                    resp = self._prompt_sock.receive(block=True, timeout=5)
+                    # The prompt console streams each command's printed
+                    # output as its own packet before the final DONE
+                    # marker, so several non-DONE packets arriving here
+                    # is normal, not an error. A single receive() timing
+                    # out mid-stream (e.g. because the firmware is busy
+                    # with a render/animation pass between two output
+                    # lines) is not itself a failure either -- only the
+                    # overall 10s deadline above decides that. Treating
+                    # every individual 5s receive() timeout as fatal (as
+                    # an earlier version of this loop did, despite the
+                    # surrounding while-loop implying it should keep
+                    # waiting) made click() fail intermittently whenever
+                    # the firmware was simply running a bit behind,
+                    # which is exactly the "after a few clicks it hard
+                    # times out" symptom that was reported.
+                    resp = self._prompt_sock.receive(block=True, timeout=min(5, remaining))
+                except exceptions.ReceiveQueueEmpty:
+                    continue
                 except Exception as e:
                     raise PebbleLinkError(f"No response to '{command}': {e}")
                 if len(resp) >= 1 and resp[0] == PROMPT_DONE_RESPONSE:
                     return
-            raise PebbleLinkError(f"Timed out waiting for '{command}' to complete")
