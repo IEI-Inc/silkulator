@@ -24,6 +24,7 @@ import argparse
 import queue
 import sys
 import threading
+import traceback
 import tkinter as tk
 from tkinter import ttk
 
@@ -115,7 +116,17 @@ class PebbleEmulatorApp:
             self.status_queue.put(f"FAILED TO START: {e}")
             return
         except Exception as e:
-            self.status_queue.put(f"FAILED TO START (unexpected): {e}")
+            # An "unexpected" (non-PebbleLinkError) failure here is, by
+            # definition, one we didn't anticipate well enough to give a
+            # helpful message for at the raise site -- str(e) can easily
+            # be empty (e.g. a bare exception instance, or one whose
+            # message lives only in its type/repr). Print the full
+            # traceback to the terminal this GUI was launched from so the
+            # real cause is always recoverable, instead of only ever
+            # showing a possibly-blank one-liner in the status bar.
+            traceback.print_exc()
+            label = f"{type(e).__name__}: {e}" if str(e) else f"{type(e).__name__} (see terminal for traceback)"
+            self.status_queue.put(f"FAILED TO START (unexpected): {label}")
             return
 
         self._poll_loop()
